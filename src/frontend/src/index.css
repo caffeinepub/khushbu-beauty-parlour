@@ -1,0 +1,120 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=DM+Sans:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.75rem;
+
+    /* Warm cream background: #F4EDE3 */
+    --background: 0.94 0.02 65;
+    --foreground: 0.2 0.01 30;
+
+    /* Cards: slightly lighter cream */
+    --card: 0.97 0.015 65;
+    --card-foreground: 0.2 0.01 30;
+
+    --popover: 0.97 0.015 65;
+    --popover-foreground: 0.2 0.01 30;
+
+    /* Primary: dusty rose #C48776 */
+    --primary: 0.63 0.09 22;
+    --primary-foreground: 0.97 0.01 65;
+
+    /* Secondary: beige-gold #E6C9A5 */
+    --secondary: 0.86 0.05 68;
+    --secondary-foreground: 0.2 0.01 30;
+
+    --muted: 0.9 0.02 65;
+    --muted-foreground: 0.5 0.03 40;
+
+    --accent: 0.86 0.05 68;
+    --accent-foreground: 0.2 0.01 30;
+
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 0.985 0 0;
+
+    --border: 0.85 0.04 65;
+    --input: 0.88 0.03 65;
+    --ring: 0.63 0.09 22;
+
+    /* Hero bg: deep warm brown #2A1A16 */
+    --hero-bg: 0.22 0.04 30;
+    --hero-text: 0.93 0.02 65;
+
+    /* Footer bg: copper/rose */
+    --footer-bg: 0.35 0.06 20;
+    --footer-text: 0.93 0.02 65;
+
+    /* Admin panel tokens — clean neutral */
+    --admin-bg: 0.96 0.005 240;
+    --admin-foreground: 0.18 0.01 240;
+    --admin-muted: 0.55 0.01 240;
+    --admin-border: 0.88 0.01 240;
+    --admin-primary: 0.62 0.09 22;
+    --admin-primary-hover: 0.55 0.09 22;
+    --admin-card-bg: 0.99 0.003 240;
+
+    /* Chart colors */
+    --chart-1: 0.646 0.222 41.116;
+    --chart-2: 0.6 0.118 184.704;
+    --chart-3: 0.398 0.07 227.392;
+    --chart-4: 0.828 0.189 84.429;
+    --chart-5: 0.769 0.188 70.08;
+
+    --sidebar: 0.94 0.02 65;
+    --sidebar-foreground: 0.2 0.01 30;
+    --sidebar-primary: 0.63 0.09 22;
+    --sidebar-primary-foreground: 0.97 0.01 65;
+    --sidebar-accent: 0.86 0.05 68;
+    --sidebar-accent-foreground: 0.2 0.01 30;
+    --sidebar-border: 0.85 0.04 65;
+    --sidebar-ring: 0.63 0.09 22;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "DM Sans", "Noto Sans Devanagari", sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: "Playfair Display", serif;
+  }
+
+  .font-devanagari {
+    font-family: "Noto Sans Devanagari", sans-serif;
+  }
+}
+
+@layer utilities {
+  .hero-bg {
+    background-color: oklch(var(--hero-bg));
+  }
+  .hero-text {
+    color: oklch(var(--hero-text));
+  }
+  .footer-bg {
+    background-color: oklch(var(--footer-bg));
+  }
+  .footer-text {
+    color: oklch(var(--footer-text));
+  }
+  .text-gold {
+    color: oklch(0.78 0.1 68);
+  }
+  .bg-gold {
+    background-color: oklch(0.78 0.1 68);
+  }
+  .border-gold {
+    border-color: oklch(0.78 0.1 68);
+  }
+}
