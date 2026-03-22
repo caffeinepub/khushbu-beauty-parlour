@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Toaster } from "@/components/ui/sonner";
 import {
   Table,
   TableBody,
@@ -12,7 +11,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Flower2, LogOut, Save, Settings } from "lucide-react";
+import {
+  Calendar,
+  Flower2,
+  LogOut,
+  Pencil,
+  Phone,
+  Save,
+  Settings,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useGetAllBookings } from "./hooks/useQueries";
@@ -91,109 +99,22 @@ function loadServices() {
   return defaultServices;
 }
 
-// ─── Login Page ────────────────────────────────────────────────────────────────
-function AdminLogin({ onLogin }: { onLogin: () => void }) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+// ─── Default Contact ───────────────────────────────────────────────────────────
+const defaultContact = {
+  phone1: "7693899623",
+  phone2: "7999570655",
+  address: "भगवानदास गली, गोपालपुरा, मुरैना (म.प्र.)",
+  tagline: "महिलाओं के लिए विशेष ब्यूटी पार्लर",
+};
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (username === "admin" && password === "khushbu123") {
-      sessionStorage.setItem("adminLoggedIn", "true");
-      onLogin();
-    } else {
-      setError("गलत यूजरनेम या पासवर्ड। कृपया पुनः प्रयास करें।");
-    }
+export function loadContact() {
+  try {
+    const stored = localStorage.getItem("khushbu_contact");
+    if (stored) return JSON.parse(stored) as typeof defaultContact;
+  } catch {
+    // ignore
   }
-
-  return (
-    <div className="min-h-screen bg-admin-bg flex items-center justify-center p-4">
-      <Card
-        className="w-full max-w-sm shadow-xl border-0"
-        data-ocid="admin.panel"
-      >
-        <CardHeader className="text-center pb-2">
-          <div className="flex justify-center mb-3">
-            <div className="w-14 h-14 rounded-full bg-admin-primary flex items-center justify-center">
-              <Flower2 className="w-7 h-7 text-white" />
-            </div>
-          </div>
-          <CardTitle className="text-xl font-bold text-admin-foreground">
-            Admin Panel
-          </CardTitle>
-          <p className="text-sm text-admin-muted font-devanagari">
-            खुशबू ब्यूटी पार्लर
-          </p>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label
-                htmlFor="admin-username"
-                className="text-admin-foreground text-sm mb-1.5 block"
-              >
-                Username
-              </Label>
-              <Input
-                id="admin-username"
-                placeholder="admin"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  setError("");
-                }}
-                className="border-admin-border"
-                data-ocid="admin.input"
-                autoComplete="username"
-              />
-            </div>
-            <div>
-              <Label
-                htmlFor="admin-password"
-                className="text-admin-foreground text-sm mb-1.5 block"
-              >
-                Password
-              </Label>
-              <Input
-                id="admin-password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setError("");
-                }}
-                className="border-admin-border"
-                data-ocid="admin.input"
-                autoComplete="current-password"
-              />
-            </div>
-            {error && (
-              <p
-                className="text-red-600 text-xs font-devanagari bg-red-50 rounded-lg px-3 py-2"
-                data-ocid="admin.error_state"
-              >
-                ⚠️ {error}
-              </p>
-            )}
-            <Button
-              type="submit"
-              className="w-full bg-admin-primary hover:bg-admin-primary-hover text-white font-semibold"
-              data-ocid="admin.submit_button"
-            >
-              लॉगिन करें
-            </Button>
-          </form>
-          <p className="text-center text-xs text-admin-muted mt-4">
-            <a href="/" className="hover:underline text-admin-primary">
-              ← वेबसाइट पर वापस जाएं
-            </a>
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  return defaultContact;
 }
 
 // ─── Bookings Tab ──────────────────────────────────────────────────────────────
@@ -305,6 +226,8 @@ function BookingsTab() {
 // ─── Services Editor Tab ───────────────────────────────────────────────────────
 function ServicesEditor() {
   const [services, setServices] = useState(loadServices);
+  const [savedServices, setSavedServices] = useState(loadServices);
+  const [isEditing, setIsEditing] = useState(false);
 
   function updateService(
     key: string,
@@ -319,26 +242,56 @@ function ServicesEditor() {
   function saveAll() {
     try {
       localStorage.setItem("khushbu_services", JSON.stringify(services));
+      setSavedServices(services);
       toast.success("सभी सेवाएं सफलतापूर्वक सेव हो गई!");
+      setIsEditing(false);
     } catch {
       toast.error("सेव करने में समस्या हुई।");
     }
+  }
+
+  function cancelEdit() {
+    setServices(savedServices);
+    setIsEditing(false);
   }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-bold text-admin-foreground font-devanagari">
-          सेवाएं संपादित करें
+          सेवाएं {isEditing ? "संपादित करें" : ""}
         </h2>
-        <Button
-          onClick={saveAll}
-          className="bg-admin-primary hover:bg-admin-primary-hover text-white flex items-center gap-2"
-          data-ocid="services.save_button"
-        >
-          <Save className="w-4 h-4" />
-          सभी सेव करें
-        </Button>
+        {isEditing ? (
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={saveAll}
+              className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+              data-ocid="services.save_button"
+            >
+              <Save className="w-4 h-4" />
+              सेव करें
+            </Button>
+            <Button
+              variant="outline"
+              onClick={cancelEdit}
+              className="flex items-center gap-2"
+              data-ocid="services.cancel_button"
+            >
+              <X className="w-4 h-4" />
+              रद्द करें
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="outline"
+            onClick={() => setIsEditing(true)}
+            className="border-admin-primary text-admin-primary hover:bg-pink-50 flex items-center gap-2"
+            data-ocid="services.edit_button"
+          >
+            <Pencil className="w-4 h-4" />
+            संपादित करें
+          </Button>
+        )}
       </div>
 
       <div
@@ -361,46 +314,68 @@ function ServicesEditor() {
                 </CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="px-4 pb-4 space-y-3">
-              <div>
-                <Label className="text-xs text-admin-muted mb-1 block">
-                  English Name
-                </Label>
-                <Input
-                  value={svc.name}
-                  onChange={(e) =>
-                    updateService(svc.key, "name", e.target.value)
-                  }
-                  className="h-8 text-sm border-admin-border"
-                  data-ocid="services.input"
-                />
-              </div>
-              <div>
-                <Label className="text-xs text-admin-muted mb-1 block font-devanagari">
-                  हिंदी नाम
-                </Label>
-                <Input
-                  value={svc.nameHi}
-                  onChange={(e) =>
-                    updateService(svc.key, "nameHi", e.target.value)
-                  }
-                  className="h-8 text-sm border-admin-border font-devanagari"
-                  data-ocid="services.input"
-                />
-              </div>
-              <div>
-                <Label className="text-xs text-admin-muted mb-1 block">
-                  Description
-                </Label>
-                <Textarea
-                  value={svc.desc}
-                  onChange={(e) =>
-                    updateService(svc.key, "desc", e.target.value)
-                  }
-                  className="text-sm resize-none border-admin-border min-h-[60px]"
-                  data-ocid="services.textarea"
-                />
-              </div>
+            <CardContent className="px-4 pb-4">
+              {isEditing ? (
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs text-admin-muted mb-1 block">
+                      English Name
+                    </Label>
+                    <Input
+                      value={svc.name}
+                      onChange={(e) =>
+                        updateService(svc.key, "name", e.target.value)
+                      }
+                      className="h-8 text-sm border-admin-border"
+                      data-ocid="services.input"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-admin-muted mb-1 block font-devanagari">
+                      हिंदी नाम
+                    </Label>
+                    <Input
+                      value={svc.nameHi}
+                      onChange={(e) =>
+                        updateService(svc.key, "nameHi", e.target.value)
+                      }
+                      className="h-8 text-sm border-admin-border font-devanagari"
+                      data-ocid="services.input"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-admin-muted mb-1 block">
+                      Description
+                    </Label>
+                    <Textarea
+                      value={svc.desc}
+                      onChange={(e) =>
+                        updateService(svc.key, "desc", e.target.value)
+                      }
+                      className="text-sm resize-none border-admin-border min-h-[60px]"
+                      data-ocid="services.textarea"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-admin-muted">EN:</span>
+                    <span className="text-sm text-admin-foreground font-medium">
+                      {svc.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-admin-muted">HI:</span>
+                    <span className="text-sm text-admin-foreground font-devanagari">
+                      {svc.nameHi}
+                    </span>
+                  </div>
+                  <p className="text-xs text-admin-muted mt-1 italic">
+                    {svc.desc}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -409,11 +384,193 @@ function ServicesEditor() {
   );
 }
 
-// ─── Dashboard ────────────────────────────────────────────────────────────────
-function AdminDashboard({ onLogout }: { onLogout: () => void }) {
-  const [activeTab, setActiveTab] = useState<"bookings" | "services">(
-    "bookings",
+// ─── Contact Info Tab ──────────────────────────────────────────────────────────
+function ContactEditor() {
+  const [contact, setContact] = useState(loadContact);
+  const [savedContact, setSavedContact] = useState(loadContact);
+  const [isEditing, setIsEditing] = useState(false);
+
+  function saveContact() {
+    try {
+      localStorage.setItem("khushbu_contact", JSON.stringify(contact));
+      setSavedContact(contact);
+      toast.success("संपर्क जानकारी सफलतापूर्वक सेव हो गई!");
+      setIsEditing(false);
+    } catch {
+      toast.error("सेव करने में समस्या हुई।");
+    }
+  }
+
+  function cancelEdit() {
+    setContact(savedContact);
+    setIsEditing(false);
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-lg font-bold text-admin-foreground font-devanagari">
+          संपर्क जानकारी {isEditing ? "संपादित करें" : ""}
+        </h2>
+        {isEditing ? (
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={saveContact}
+              className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+              data-ocid="contact.save_button"
+            >
+              <Save className="w-4 h-4" />
+              सेव करें
+            </Button>
+            <Button
+              variant="outline"
+              onClick={cancelEdit}
+              className="flex items-center gap-2"
+              data-ocid="contact.cancel_button"
+            >
+              <X className="w-4 h-4" />
+              रद्द करें
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="outline"
+            onClick={() => setIsEditing(true)}
+            className="border-admin-primary text-admin-primary hover:bg-pink-50 flex items-center gap-2"
+            data-ocid="contact.edit_button"
+          >
+            <Pencil className="w-4 h-4" />
+            संपादित करें
+          </Button>
+        )}
+      </div>
+
+      <Card
+        className="border border-admin-border shadow-sm max-w-2xl"
+        data-ocid="contact.card"
+      >
+        <CardContent className="pt-6">
+          {isEditing ? (
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-admin-muted mb-1.5 block font-devanagari">
+                    📞 फोन नंबर 1
+                  </Label>
+                  <Input
+                    value={contact.phone1}
+                    onChange={(e) =>
+                      setContact((prev) => ({
+                        ...prev,
+                        phone1: e.target.value,
+                      }))
+                    }
+                    className="border-admin-border"
+                    placeholder="7693899623"
+                    data-ocid="contact.input"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-admin-muted mb-1.5 block font-devanagari">
+                    📞 फोन नंबर 2
+                  </Label>
+                  <Input
+                    value={contact.phone2}
+                    onChange={(e) =>
+                      setContact((prev) => ({
+                        ...prev,
+                        phone2: e.target.value,
+                      }))
+                    }
+                    className="border-admin-border"
+                    placeholder="7999570655"
+                    data-ocid="contact.input"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs text-admin-muted mb-1.5 block font-devanagari">
+                  📍 पता (Address)
+                </Label>
+                <Textarea
+                  value={contact.address}
+                  onChange={(e) =>
+                    setContact((prev) => ({ ...prev, address: e.target.value }))
+                  }
+                  className="resize-none border-admin-border font-devanagari min-h-[80px]"
+                  placeholder="भगवानदास गली, गोपालपुरा, मुरैना (म.प्र.)"
+                  data-ocid="contact.textarea"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs text-admin-muted mb-1.5 block font-devanagari">
+                  ✨ टैगलाइन / परिचय पाठ
+                </Label>
+                <Textarea
+                  value={contact.tagline}
+                  onChange={(e) =>
+                    setContact((prev) => ({ ...prev, tagline: e.target.value }))
+                  }
+                  className="resize-none border-admin-border font-devanagari min-h-[80px]"
+                  placeholder="महिलाओं के लिए विशेष ब्यूटी पार्लर"
+                  data-ocid="contact.textarea"
+                />
+                <p className="text-xs text-admin-muted mt-1.5 font-devanagari">
+                  यह टेक्स्ट मुख्य वेबसाइट पर दिखाया जाएगा।
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-pink-50 rounded-lg p-4 border border-pink-100">
+                  <p className="text-xs text-admin-muted font-devanagari mb-1">
+                    📞 फोन नंबर 1
+                  </p>
+                  <p className="text-base font-semibold text-admin-foreground">
+                    {contact.phone1}
+                  </p>
+                </div>
+                <div className="bg-pink-50 rounded-lg p-4 border border-pink-100">
+                  <p className="text-xs text-admin-muted font-devanagari mb-1">
+                    📞 फोन नंबर 2
+                  </p>
+                  <p className="text-base font-semibold text-admin-foreground">
+                    {contact.phone2}
+                  </p>
+                </div>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                <p className="text-xs text-admin-muted font-devanagari mb-1">
+                  📍 पता
+                </p>
+                <p className="text-sm text-admin-foreground font-devanagari leading-relaxed">
+                  {contact.address}
+                </p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                <p className="text-xs text-admin-muted font-devanagari mb-1">
+                  ✨ टैगलाइन
+                </p>
+                <p className="text-sm text-admin-foreground font-devanagari">
+                  {contact.tagline}
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
+}
+
+// ─── Dashboard (default export) ───────────────────────────────────────────────
+export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
+  const [activeTab, setActiveTab] = useState<
+    "bookings" | "services" | "contact"
+  >("bookings");
 
   return (
     <div className="min-h-screen bg-admin-bg flex flex-col">
@@ -425,7 +582,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
               <Flower2 className="w-4 h-4 text-white" />
             </div>
             <div>
-              <span className="font-bold text-admin-foreground text-sm">
+              <span className="font-bold text-admin-foreground text-sm font-devanagari">
                 खुशबू ब्यूटी पार्लर
               </span>
               <span className="text-admin-muted text-xs ml-2">Admin Panel</span>
@@ -481,36 +638,28 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             <Settings className="w-4 h-4" />
             <span className="font-devanagari">सेवाएं</span>
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("contact")}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "contact"
+                ? "border-admin-primary text-admin-primary"
+                : "border-transparent text-admin-muted hover:text-admin-foreground"
+            }`}
+            data-ocid="admin.tab"
+          >
+            <Phone className="w-4 h-4" />
+            <span className="font-devanagari">संपर्क जानकारी</span>
+          </button>
         </div>
       </div>
 
       {/* Content */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 py-6">
-        {activeTab === "bookings" ? <BookingsTab /> : <ServicesEditor />}
+        {activeTab === "bookings" && <BookingsTab />}
+        {activeTab === "services" && <ServicesEditor />}
+        {activeTab === "contact" && <ContactEditor />}
       </main>
     </div>
-  );
-}
-
-// ─── Admin Panel Root ─────────────────────────────────────────────────────────
-export default function AdminPanel() {
-  const [loggedIn, setLoggedIn] = useState(
-    () => sessionStorage.getItem("adminLoggedIn") === "true",
-  );
-
-  function handleLogout() {
-    sessionStorage.removeItem("adminLoggedIn");
-    setLoggedIn(false);
-  }
-
-  return (
-    <>
-      <Toaster position="top-right" />
-      {loggedIn ? (
-        <AdminDashboard onLogout={handleLogout} />
-      ) : (
-        <AdminLogin onLogin={() => setLoggedIn(true)} />
-      )}
-    </>
   );
 }

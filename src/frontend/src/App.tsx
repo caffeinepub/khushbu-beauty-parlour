@@ -29,7 +29,8 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import AdminPanel from "./AdminPanel";
+import AdminLogin from "./AdminLogin";
+import { loadContact } from "./AdminPanel";
 import { Service } from "./backend.d";
 import { useBookAppointment } from "./hooks/useQueries";
 
@@ -303,6 +304,7 @@ function Header() {
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────────────
 function Hero() {
+  const contact = loadContact();
   return (
     <section
       id="hero"
@@ -344,7 +346,7 @@ function Hero() {
           </p>
 
           <p className="font-devanagari text-[oklch(0.80_0.03_60)] mb-8 text-base leading-relaxed max-w-md">
-            मुरैना, म.प्र. की सबसे विश्वसनीय महिला ब्यूटी पार्लर।
+            {contact.tagline}
             <br />
             <span className="text-[oklch(0.78_0.1_68)]">प्रो. खुशबू परमार</span>{" "}
             द्वारा संचालित।
@@ -373,11 +375,11 @@ function Hero() {
           <div className="mt-10 flex items-center gap-6">
             <div className="flex items-center gap-2 text-sm text-[oklch(0.78_0.1_68)]">
               <Phone className="w-4 h-4" />
-              <span>7693899623</span>
+              {contact.phone1}
             </div>
             <div className="flex items-center gap-2 text-sm text-[oklch(0.78_0.1_68)]">
               <Phone className="w-4 h-4" />
-              <span>7999570655</span>
+              {contact.phone2}
             </div>
           </div>
         </motion.div>
@@ -730,6 +732,19 @@ function BookingSection() {
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
+    // Open WhatsApp with booking details
+    const serviceLabel = service ? serviceLabels[service as Service] : "";
+    const waMessage = `नई अपॉइंटमेंट बुकिंग 🌸
+----------------------------
+नाम: ${name.trim()}
+मोबाइल: ${phone.trim()}
+सेवा: ${serviceLabel}
+तारीख: ${date}
+----------------------------
+खुशबू ब्यूटी पार्लर`;
+    const waUrl = `https://wa.me/917693899623?text=${encodeURIComponent(waMessage)}`;
+    window.open(waUrl, "_blank");
+
     mutate(
       {
         customerName: name.trim(),
@@ -894,7 +909,7 @@ function BookingSection() {
                     बुक हो रहा है...
                   </>
                 ) : (
-                  "BOOK NOW — अभी बुक करें"
+                  "BOOK NOW — WhatsApp पर भेजें 💬"
                 )}
               </Button>
 
@@ -1049,6 +1064,7 @@ function AboutSection() {
 
 // ─── Footer ─────────────────────────────────────────────────────────────────────────────
 function Footer() {
+  const contact = loadContact();
   const year = new Date().getFullYear();
   const hostname = encodeURIComponent(window.location.hostname);
 
@@ -1089,25 +1105,23 @@ function Footer() {
               <div className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
                 <p className="text-sm font-devanagari opacity-80 leading-relaxed">
-                  भगवानदास गली, गोपालपुरा,
-                  <br />
-                  मुरैना (म.प्र.)
+                  {contact.address}
                 </p>
               </div>
               <div className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-primary flex-shrink-0" />
                 <div className="text-sm opacity-80">
                   <a
-                    href="tel:7693899623"
+                    href={`tel:${contact.phone1}`}
                     className="block hover:text-gold transition-colors"
                   >
-                    📞 7693899623
+                    📞 {contact.phone1}
                   </a>
                   <a
-                    href="tel:7999570655"
+                    href={`tel:${contact.phone2}`}
                     className="block hover:text-gold transition-colors"
                   >
-                    📞 7999570655
+                    📞 {contact.phone2}
                   </a>
                 </div>
               </div>
@@ -1169,7 +1183,7 @@ function Footer() {
 export default function App() {
   // Admin panel routing — show admin panel if path starts with /admin
   if (window.location.pathname.startsWith("/admin")) {
-    return <AdminPanel />;
+    return <AdminLogin />;
   }
 
   return (

@@ -1,29 +1,20 @@
-# Khushbu Beauty Parlour - Admin Panel
+# Khushbu Beauty Parlour
 
 ## Current State
-A full beauty parlor website with hero, services grid, bridal packages, booking form, about/testimonials, and footer. Backend has bookAppointment, getAllBookings, getBookingsByCustomerName APIs. No admin area exists.
+Booking form collects name, phone, service, date and submits to the backend canister.
 
 ## Requested Changes (Diff)
 
 ### Add
-- `/admin` route: Admin login page with username/password form (hardcoded credentials: admin/khushbu123)
-- Admin dashboard page (only visible after login)
-- Dashboard shows: total bookings count, recent bookings list
-- Services management section in dashboard: list all services with name, Hindi name, description, icon fields — editable inline, save to localStorage
-- Logout button in admin header
+- After form validation, open WhatsApp with a pre-filled message containing all booking details (name, phone, service, date) sent to admin number 7693899623.
 
 ### Modify
-- App.tsx: Add routing so `/admin` shows admin panel, root `/` shows existing website
+- `BookingSection` handleSubmit: after validation success, open `https://wa.me/917693899623?text=...` with booking details, then also save to backend as before.
 
 ### Remove
-- Nothing removed from existing website
+- Nothing removed.
 
 ## Implementation Plan
-1. Add React Router (already in project or use hash-based routing with useState)
-2. Create AdminLogin component with form validation
-3. Create AdminDashboard component with:
-   - Stats cards (total bookings, services count)
-   - Recent bookings table from getAllBookings API
-   - Services editor: list of services with editable fields, save button
-4. Store admin session in sessionStorage, services edits in localStorage
-5. Wire routing in App.tsx: show admin panel when path is /admin
+1. In `BookingSection.handleSubmit`, after validation passes, build a WhatsApp URL with the booking details.
+2. Open the WhatsApp URL in a new tab.
+3. Continue to call `mutate` to save the booking to backend as well.
