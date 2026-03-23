@@ -394,7 +394,10 @@ function Hero() {
           <div className="relative">
             <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-[oklch(0.78_0.1_68/0.3)] to-transparent blur-2xl scale-110" />
             <img
-              src="/assets/generated/bridal-hero.dim_800x600.jpg"
+              src={
+                localStorage.getItem("khushbu_banner_img") ||
+                "/assets/generated/bridal-hero.dim_800x600.jpg"
+              }
               alt="Bridal beauty - Khushbu Beauty Parlour"
               className="relative rounded-3xl shadow-2xl w-full max-w-sm lg:max-w-md object-cover aspect-[4/5]"
               loading="eager"
@@ -465,20 +468,32 @@ function ServicesSection() {
               onClick={() => scrollTo("booking")}
               data-ocid={`services.item.${i + 1}`}
             >
-              {svc.img ? (
-                <div className="aspect-[4/3] overflow-hidden">
-                  <img
-                    src={svc.img}
-                    alt={svc.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
-                  />
-                </div>
-              ) : (
-                <div className="aspect-[4/3] bg-gradient-to-br from-secondary to-muted flex items-center justify-center">
-                  <span className="text-4xl">{svc.icon}</span>
-                </div>
-              )}
+              {(() => {
+                const customImg = (() => {
+                  try {
+                    return JSON.parse(
+                      localStorage.getItem("khushbu_service_imgs") || "{}",
+                    )[svc.id];
+                  } catch {
+                    return null;
+                  }
+                })();
+                const imgSrc = customImg || svc.img;
+                return imgSrc ? (
+                  <div className="aspect-[4/3] overflow-hidden">
+                    <img
+                      src={imgSrc}
+                      alt={svc.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                    />
+                  </div>
+                ) : (
+                  <div className="aspect-[4/3] bg-gradient-to-br from-secondary to-muted flex items-center justify-center">
+                    <span className="text-4xl">{svc.icon}</span>
+                  </div>
+                );
+              })()}
               <div className="p-3">
                 <h3 className="font-serif text-sm font-bold text-foreground">
                   {svc.name}
@@ -539,6 +554,22 @@ function BridalSection() {
   return (
     <section id="bridal" className="py-20 bg-muted">
       <div className="container mx-auto px-4">
+        {localStorage.getItem("khushbu_bridal_img") && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="mb-12 rounded-3xl overflow-hidden shadow-card max-h-80"
+          >
+            <img
+              src={localStorage.getItem("khushbu_bridal_img")!}
+              alt="Bridal - Khushbu Beauty Parlour"
+              className="w-full h-80 object-cover"
+              loading="lazy"
+            />
+          </motion.div>
+        )}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}

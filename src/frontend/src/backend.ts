@@ -92,6 +92,7 @@ export class ExternalBlob {
 export interface Booking {
     id: bigint;
     customerName: string;
+    status: Status;
     selectedService: Service;
     preferredDate: string;
     timestamp: Time;
@@ -110,25 +111,56 @@ export enum Service {
     bridalMakeup = "bridalMakeup",
     hairCutting = "hairCutting"
 }
-export interface backendInterface {
-    bookAppointment(booking: Booking): Promise<bigint>;
-    getAllBookings(): Promise<Array<Booking>>;
-    getBookingsByCustomerName(): Promise<Array<Booking>>;
+export enum Status {
+    pending = "pending",
+    approved = "approved",
+    rejected = "rejected"
 }
-import type { Booking as _Booking, Service as _Service, Time as _Time } from "./declarations/backend.did.d.ts";
+export interface backendInterface {
+    approveBooking(id: bigint): Promise<void>;
+    bookAppointment(input: {
+        customerName: string;
+        selectedService: Service;
+        preferredDate: string;
+        phoneNumber: string;
+    }): Promise<bigint>;
+    getAllBookings(): Promise<Array<Booking>>;
+    getBookingsByCustomerName(customerName: string): Promise<Array<Booking>>;
+    rejectBooking(id: bigint): Promise<void>;
+}
+import type { Booking as _Booking, Service as _Service, Status as _Status, Time as _Time } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
-    async bookAppointment(arg0: Booking): Promise<bigint> {
+    async approveBooking(arg0: bigint): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor.bookAppointment(to_candid_Booking_n1(this._uploadFile, this._downloadFile, arg0));
+                const result = await this.actor.approveBooking(arg0);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.bookAppointment(to_candid_Booking_n1(this._uploadFile, this._downloadFile, arg0));
+            const result = await this.actor.approveBooking(arg0);
+            return result;
+        }
+    }
+    async bookAppointment(arg0: {
+        customerName: string;
+        selectedService: Service;
+        preferredDate: string;
+        phoneNumber: string;
+    }): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.bookAppointment(to_candid_record_n1(this._uploadFile, this._downloadFile, arg0));
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.bookAppointment(to_candid_record_n1(this._uploadFile, this._downloadFile, arg0));
             return result;
         }
     }
@@ -136,40 +168,58 @@ export class Backend implements backendInterface {
         if (this.processError) {
             try {
                 const result = await this.actor.getAllBookings();
-                return from_candid_vec_n5(this._uploadFile, this._downloadFile, result);
+                return from_candid_vec_n4(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.getAllBookings();
-            return from_candid_vec_n5(this._uploadFile, this._downloadFile, result);
+            return from_candid_vec_n4(this._uploadFile, this._downloadFile, result);
         }
     }
-    async getBookingsByCustomerName(): Promise<Array<Booking>> {
+    async getBookingsByCustomerName(arg0: string): Promise<Array<Booking>> {
         if (this.processError) {
             try {
-                const result = await this.actor.getBookingsByCustomerName();
-                return from_candid_vec_n5(this._uploadFile, this._downloadFile, result);
+                const result = await this.actor.getBookingsByCustomerName(arg0);
+                return from_candid_vec_n4(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.getBookingsByCustomerName();
-            return from_candid_vec_n5(this._uploadFile, this._downloadFile, result);
+            const result = await this.actor.getBookingsByCustomerName(arg0);
+            return from_candid_vec_n4(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async rejectBooking(arg0: bigint): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.rejectBooking(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.rejectBooking(arg0);
+            return result;
         }
     }
 }
-function from_candid_Booking_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Booking): Booking {
-    return from_candid_record_n7(_uploadFile, _downloadFile, value);
+function from_candid_Booking_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Booking): Booking {
+    return from_candid_record_n6(_uploadFile, _downloadFile, value);
 }
-function from_candid_Service_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Service): Service {
-    return from_candid_variant_n9(_uploadFile, _downloadFile, value);
+function from_candid_Service_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Service): Service {
+    return from_candid_variant_n10(_uploadFile, _downloadFile, value);
 }
-function from_candid_record_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_Status_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _Status): Status {
+    return from_candid_variant_n8(_uploadFile, _downloadFile, value);
+}
+function from_candid_record_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     id: bigint;
     customerName: string;
+    status: _Status;
     selectedService: _Service;
     preferredDate: string;
     timestamp: _Time;
@@ -177,6 +227,7 @@ function from_candid_record_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint
 }): {
     id: bigint;
     customerName: string;
+    status: Status;
     selectedService: Service;
     preferredDate: string;
     timestamp: Time;
@@ -185,13 +236,14 @@ function from_candid_record_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint
     return {
         id: value.id,
         customerName: value.customerName,
-        selectedService: from_candid_Service_n8(_uploadFile, _downloadFile, value.selectedService),
+        status: from_candid_Status_n7(_uploadFile, _downloadFile, value.status),
+        selectedService: from_candid_Service_n9(_uploadFile, _downloadFile, value.selectedService),
         preferredDate: value.preferredDate,
         timestamp: value.timestamp,
         phoneNumber: value.phoneNumber
     };
 }
-function from_candid_variant_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+function from_candid_variant_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     eyeBrow: null;
 } | {
     pedicure: null;
@@ -214,40 +266,40 @@ function from_candid_variant_n9(_uploadFile: (file: ExternalBlob) => Promise<Uin
 }): Service {
     return "eyeBrow" in value ? Service.eyeBrow : "pedicure" in value ? Service.pedicure : "hairSpa" in value ? Service.hairSpa : "facials" in value ? Service.facials : "partyMakeup" in value ? Service.partyMakeup : "waxing" in value ? Service.waxing : "manicure" in value ? Service.manicure : "hairColor" in value ? Service.hairColor : "bridalMakeup" in value ? Service.bridalMakeup : "hairCutting" in value ? Service.hairCutting : value;
 }
-function from_candid_vec_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Booking>): Array<Booking> {
-    return value.map((x)=>from_candid_Booking_n6(_uploadFile, _downloadFile, x));
+function from_candid_variant_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+    pending: null;
+} | {
+    approved: null;
+} | {
+    rejected: null;
+}): Status {
+    return "pending" in value ? Status.pending : "approved" in value ? Status.approved : "rejected" in value ? Status.rejected : value;
 }
-function to_candid_Booking_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Booking): _Booking {
-    return to_candid_record_n2(_uploadFile, _downloadFile, value);
+function from_candid_vec_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_Booking>): Array<Booking> {
+    return value.map((x)=>from_candid_Booking_n5(_uploadFile, _downloadFile, x));
 }
-function to_candid_Service_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Service): _Service {
-    return to_candid_variant_n4(_uploadFile, _downloadFile, value);
+function to_candid_Service_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Service): _Service {
+    return to_candid_variant_n3(_uploadFile, _downloadFile, value);
 }
-function to_candid_record_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    id: bigint;
+function to_candid_record_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
     customerName: string;
     selectedService: Service;
     preferredDate: string;
-    timestamp: Time;
     phoneNumber: string;
 }): {
-    id: bigint;
     customerName: string;
     selectedService: _Service;
     preferredDate: string;
-    timestamp: _Time;
     phoneNumber: string;
 } {
     return {
-        id: value.id,
         customerName: value.customerName,
-        selectedService: to_candid_Service_n3(_uploadFile, _downloadFile, value.selectedService),
+        selectedService: to_candid_Service_n2(_uploadFile, _downloadFile, value.selectedService),
         preferredDate: value.preferredDate,
-        timestamp: value.timestamp,
         phoneNumber: value.phoneNumber
     };
 }
-function to_candid_variant_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Service): {
+function to_candid_variant_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Service): {
     eyeBrow: null;
 } | {
     pedicure: null;

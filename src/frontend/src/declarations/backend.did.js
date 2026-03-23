@@ -20,10 +20,16 @@ export const Service = IDL.Variant({
   'bridalMakeup' : IDL.Null,
   'hairCutting' : IDL.Null,
 });
+export const Status = IDL.Variant({
+  'pending' : IDL.Null,
+  'approved' : IDL.Null,
+  'rejected' : IDL.Null,
+});
 export const Time = IDL.Int;
 export const Booking = IDL.Record({
   'id' : IDL.Nat,
   'customerName' : IDL.Text,
+  'status' : Status,
   'selectedService' : Service,
   'preferredDate' : IDL.Text,
   'timestamp' : Time,
@@ -31,9 +37,26 @@ export const Booking = IDL.Record({
 });
 
 export const idlService = IDL.Service({
-  'bookAppointment' : IDL.Func([Booking], [IDL.Nat], []),
+  'approveBooking' : IDL.Func([IDL.Nat], [], []),
+  'bookAppointment' : IDL.Func(
+      [
+        IDL.Record({
+          'customerName' : IDL.Text,
+          'selectedService' : Service,
+          'preferredDate' : IDL.Text,
+          'phoneNumber' : IDL.Text,
+        }),
+      ],
+      [IDL.Nat],
+      [],
+    ),
   'getAllBookings' : IDL.Func([], [IDL.Vec(Booking)], ['query']),
-  'getBookingsByCustomerName' : IDL.Func([], [IDL.Vec(Booking)], ['query']),
+  'getBookingsByCustomerName' : IDL.Func(
+      [IDL.Text],
+      [IDL.Vec(Booking)],
+      ['query'],
+    ),
+  'rejectBooking' : IDL.Func([IDL.Nat], [], []),
 });
 
 export const idlInitArgs = [];
@@ -51,10 +74,16 @@ export const idlFactory = ({ IDL }) => {
     'bridalMakeup' : IDL.Null,
     'hairCutting' : IDL.Null,
   });
+  const Status = IDL.Variant({
+    'pending' : IDL.Null,
+    'approved' : IDL.Null,
+    'rejected' : IDL.Null,
+  });
   const Time = IDL.Int;
   const Booking = IDL.Record({
     'id' : IDL.Nat,
     'customerName' : IDL.Text,
+    'status' : Status,
     'selectedService' : Service,
     'preferredDate' : IDL.Text,
     'timestamp' : Time,
@@ -62,9 +91,26 @@ export const idlFactory = ({ IDL }) => {
   });
   
   return IDL.Service({
-    'bookAppointment' : IDL.Func([Booking], [IDL.Nat], []),
+    'approveBooking' : IDL.Func([IDL.Nat], [], []),
+    'bookAppointment' : IDL.Func(
+        [
+          IDL.Record({
+            'customerName' : IDL.Text,
+            'selectedService' : Service,
+            'preferredDate' : IDL.Text,
+            'phoneNumber' : IDL.Text,
+          }),
+        ],
+        [IDL.Nat],
+        [],
+      ),
     'getAllBookings' : IDL.Func([], [IDL.Vec(Booking)], ['query']),
-    'getBookingsByCustomerName' : IDL.Func([], [IDL.Vec(Booking)], ['query']),
+    'getBookingsByCustomerName' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(Booking)],
+        ['query'],
+      ),
+    'rejectBooking' : IDL.Func([IDL.Nat], [], []),
   });
 };
 

@@ -13,6 +13,7 @@ import type { Principal } from '@icp-sdk/core/principal';
 export interface Booking {
   'id' : bigint,
   'customerName' : string,
+  'status' : Status,
   'selectedService' : Service,
   'preferredDate' : string,
   'timestamp' : Time,
@@ -28,11 +29,26 @@ export type Service = { 'eyeBrow' : null } |
   { 'hairColor' : null } |
   { 'bridalMakeup' : null } |
   { 'hairCutting' : null };
+export type Status = { 'pending' : null } |
+  { 'approved' : null } |
+  { 'rejected' : null };
 export type Time = bigint;
 export interface _SERVICE {
-  'bookAppointment' : ActorMethod<[Booking], bigint>,
+  'approveBooking' : ActorMethod<[bigint], undefined>,
+  'bookAppointment' : ActorMethod<
+    [
+      {
+        'customerName' : string,
+        'selectedService' : Service,
+        'preferredDate' : string,
+        'phoneNumber' : string,
+      },
+    ],
+    bigint
+  >,
   'getAllBookings' : ActorMethod<[], Array<Booking>>,
-  'getBookingsByCustomerName' : ActorMethod<[], Array<Booking>>,
+  'getBookingsByCustomerName' : ActorMethod<[string], Array<Booking>>,
+  'rejectBooking' : ActorMethod<[bigint], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

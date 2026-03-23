@@ -10,6 +10,7 @@ export type Option<T> = Some<T> | None;
 export interface Booking {
     id: bigint;
     customerName: string;
+    status: Status;
     selectedService: Service;
     preferredDate: string;
     timestamp: Time;
@@ -28,8 +29,20 @@ export enum Service {
     bridalMakeup = "bridalMakeup",
     hairCutting = "hairCutting"
 }
+export enum Status {
+    pending = "pending",
+    approved = "approved",
+    rejected = "rejected"
+}
 export interface backendInterface {
-    bookAppointment(booking: Booking): Promise<bigint>;
+    approveBooking(id: bigint): Promise<void>;
+    bookAppointment(input: {
+        customerName: string;
+        selectedService: Service;
+        preferredDate: string;
+        phoneNumber: string;
+    }): Promise<bigint>;
     getAllBookings(): Promise<Array<Booking>>;
-    getBookingsByCustomerName(): Promise<Array<Booking>>;
+    getBookingsByCustomerName(customerName: string): Promise<Array<Booking>>;
+    rejectBooking(id: bigint): Promise<void>;
 }

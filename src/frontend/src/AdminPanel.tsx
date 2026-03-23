@@ -11,19 +11,31 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { HttpAgent } from "@icp-sdk/core/agent";
 import {
   Calendar,
+  CheckCircle,
   Flower2,
+  Image,
+  Loader2,
   LogOut,
   Pencil,
   Phone,
   Save,
   Settings,
   X,
+  XCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useGetAllBookings } from "./hooks/useQueries";
+import type { Status } from "./backend.d";
+import { loadConfig } from "./config";
+import {
+  useApproveBooking,
+  useGetAllBookings,
+  useRejectBooking,
+} from "./hooks/useQueries";
+import { StorageClient } from "./utils/StorageClient";
 
 // ─── Default Services ──────────────────────────────────────────────────────────
 const defaultServices = [
@@ -117,9 +129,40 @@ export function loadContact() {
   return defaultContact;
 }
 
+// ─── Status Badge ──────────────────────────────────────────────────────────────
+function StatusBadge({ status }: { status: Status }) {
+  if (status === "approved") {
+    return (
+      <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs px-2.5 py-1 rounded-full font-medium font-devanagari">
+        <CheckCircle className="w-3 h-3" />
+        स्वीकृत
+      </span>
+    );
+  }
+  if (status === "rejected") {
+    return (
+      <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 text-xs px-2.5 py-1 rounded-full font-medium font-devanagari">
+        <XCircle className="w-3 h-3" />
+        अस्वीकृत
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-800 text-xs px-2.5 py-1 rounded-full font-medium font-devanagari">
+      <Loader2 className="w-3 h-3" />
+      प्रतीक्षित
+    </span>
+  );
+}
+
 // ─── Bookings Tab ──────────────────────────────────────────────────────────────
+type StatusFilter = "all" | "pending" | "approved" | "rejected";
+
 function BookingsTab() {
   const { data: bookings, isLoading } = useGetAllBookings();
+  const approveBooking = useApproveBooking();
+  const rejectBooking = useRejectBooking();
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const serviceLabels: Record<string, string> = {
     eyeBrow: "Eye Brow",
@@ -134,17 +177,101 @@ function BookingsTab() {
     bridalMakeup: "Bridal Makeup",
   };
 
+  const counts = {
+    all: bookings?.length ?? 0,
+    pending: bookings?.filter((b) => b.status === "pending").length ?? 0,
+    approved: bookings?.filter((b) => b.status === "approved").length ?? 0,
+    rejected: bookings?.filter((b) => b.status === "rejected").length ?? 0,
+  };
+
+  const filtered =
+    statusFilter === "all"
+      ? bookings
+      : bookings?.filter((b) => b.status === statusFilter);
+
+  const filterTabs: { key: StatusFilter; label: string; color: string }[] = [
+    { key: "all", label: "सभी", color: "text-admin-foreground" },
+    { key: "pending", label: "प्रतीक्षित", color: "text-yellow-700" },
+    { key: "approved", label: "स्वीकृत", color: "text-green-700" },
+    { key: "rejected", label: "अस्वीकृत", color: "text-red-700" },
+  ];
+
+  async function handleApprove(id: bigint) {
+    try {
+      await approveBooking.mutateAsync(id);
+      toast.success("बुकिंग स्वीकार कर ली गई!");
+      // Send WhatsApp confirmation to customer
+      const booking = bookings?.find((b) => b.id === id);
+      if (booking) {
+        const serviceLabel =
+          serviceLabels[booking.selectedService as string] ??
+          booking.selectedService;
+        const waMsg = `नमस्ते ${booking.customerName} जी! 🌸
+
+आपकी बुकिंग *खुशबू ब्यूटी पार्लर* में *स्वीकार* कर ली गई है।
+
+📋 बुकिंग विवरण:
+• सेवा: ${serviceLabel}
+• तारीख: ${booking.preferredDate}
+
+हम आपका इंतज़ार कर रहे हैं! 💐
+खुशबू ब्यूटी पार्लर, मुरैना`;
+        const waUrl = `https://wa.me/91${booking.phoneNumber}?text=${encodeURIComponent(waMsg)}`;
+        window.open(waUrl, "_blank");
+      }
+    } catch {
+      toast.error("कार्रवाई में समस्या हुई।");
+    }
+  }
+
+  async function handleReject(id: bigint) {
+    try {
+      await rejectBooking.mutateAsync(id);
+      toast.success("बुकिंग अस्वीकार कर दी गई।");
+    } catch {
+      toast.error("कार्रवाई में समस्या हुई।");
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-admin-foreground font-devanagari">
-          सभी बुकिंग
+          बुकिंग प्रबंधन
         </h2>
         {bookings && (
           <span className="text-sm text-admin-muted bg-admin-card-bg px-3 py-1 rounded-full border border-admin-border">
             कुल: <strong>{bookings.length}</strong>
           </span>
         )}
+      </div>
+
+      {/* Status Filter Tabs */}
+      <div className="flex gap-2 mb-5 flex-wrap" data-ocid="bookings.tab">
+        {filterTabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setStatusFilter(tab.key)}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium font-devanagari border transition-all ${
+              statusFilter === tab.key
+                ? "bg-admin-primary text-white border-admin-primary shadow-sm"
+                : `bg-white ${tab.color} border-admin-border hover:border-admin-primary/50`
+            }`}
+            data-ocid={`bookings.${tab.key}.tab`}
+          >
+            {tab.label}
+            <span
+              className={`text-xs px-1.5 py-0.5 rounded-full ${
+                statusFilter === tab.key
+                  ? "bg-white/20 text-white"
+                  : "bg-gray-100 text-admin-muted"
+              }`}
+            >
+              {counts[tab.key]}
+            </span>
+          </button>
+        ))}
       </div>
 
       {isLoading ? (
@@ -155,68 +282,120 @@ function BookingsTab() {
           <div className="w-8 h-8 border-2 border-admin-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           लोड हो रहा है...
         </div>
-      ) : !bookings || bookings.length === 0 ? (
+      ) : !filtered || filtered.length === 0 ? (
         <div
           className="text-center py-12 text-admin-muted bg-admin-card-bg rounded-xl border border-admin-border"
           data-ocid="bookings.empty_state"
         >
           <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="font-devanagari">अभी कोई बुकिंग नहीं है।</p>
+          <p className="font-devanagari">इस श्रेणी में कोई बुकिंग नहीं है।</p>
         </div>
       ) : (
         <div
           className="rounded-xl border border-admin-border overflow-hidden"
           data-ocid="bookings.table"
         >
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-admin-card-bg">
-                <TableHead className="text-admin-muted font-semibold">
-                  #
-                </TableHead>
-                <TableHead className="text-admin-muted font-semibold font-devanagari">
-                  नाम
-                </TableHead>
-                <TableHead className="text-admin-muted font-semibold font-devanagari">
-                  फोन
-                </TableHead>
-                <TableHead className="text-admin-muted font-semibold font-devanagari">
-                  सेवा
-                </TableHead>
-                <TableHead className="text-admin-muted font-semibold font-devanagari">
-                  तारीख
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {bookings.map((b, i) => (
-                <TableRow
-                  key={String(b.id)}
-                  className="hover:bg-admin-card-bg/50"
-                  data-ocid={`bookings.row.${i + 1}`}
-                >
-                  <TableCell className="text-admin-muted text-sm">
-                    {i + 1}
-                  </TableCell>
-                  <TableCell className="font-medium text-admin-foreground">
-                    {b.customerName}
-                  </TableCell>
-                  <TableCell className="text-admin-foreground">
-                    {b.phoneNumber}
-                  </TableCell>
-                  <TableCell className="text-admin-foreground">
-                    <span className="bg-pink-100 text-pink-800 text-xs px-2 py-0.5 rounded-full font-medium">
-                      {serviceLabels[b.selectedService as string] ??
-                        b.selectedService}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-admin-muted">
-                    {b.preferredDate}
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-admin-card-bg">
+                  <TableHead className="text-admin-muted font-semibold">
+                    #
+                  </TableHead>
+                  <TableHead className="text-admin-muted font-semibold font-devanagari">
+                    नाम
+                  </TableHead>
+                  <TableHead className="text-admin-muted font-semibold font-devanagari">
+                    फोन
+                  </TableHead>
+                  <TableHead className="text-admin-muted font-semibold font-devanagari">
+                    सेवा
+                  </TableHead>
+                  <TableHead className="text-admin-muted font-semibold font-devanagari">
+                    तारीख
+                  </TableHead>
+                  <TableHead className="text-admin-muted font-semibold font-devanagari">
+                    स्थिति
+                  </TableHead>
+                  <TableHead className="text-admin-muted font-semibold font-devanagari">
+                    कार्रवाई
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((b, i) => {
+                  const isApprovingThis =
+                    approveBooking.isPending &&
+                    approveBooking.variables === b.id;
+                  const isRejectingThis =
+                    rejectBooking.isPending && rejectBooking.variables === b.id;
+                  const isActing = isApprovingThis || isRejectingThis;
+
+                  return (
+                    <TableRow
+                      key={String(b.id)}
+                      className="hover:bg-admin-card-bg/50"
+                      data-ocid={`bookings.row.${i + 1}`}
+                    >
+                      <TableCell className="text-admin-muted text-sm">
+                        {i + 1}
+                      </TableCell>
+                      <TableCell className="font-medium text-admin-foreground">
+                        {b.customerName}
+                      </TableCell>
+                      <TableCell className="text-admin-foreground">
+                        {b.phoneNumber}
+                      </TableCell>
+                      <TableCell className="text-admin-foreground">
+                        <span className="bg-pink-100 text-pink-800 text-xs px-2 py-0.5 rounded-full font-medium">
+                          {serviceLabels[b.selectedService as string] ??
+                            b.selectedService}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-admin-muted">
+                        {b.preferredDate}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={b.status} />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleApprove(b.id)}
+                            disabled={b.status === "approved" || isActing}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium font-devanagari transition-all bg-green-600 hover:bg-green-700 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                            data-ocid={`bookings.confirm_button.${i + 1}`}
+                          >
+                            {isApprovingThis ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <CheckCircle className="w-3 h-3" />
+                            )}
+                            स्वीकार
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleReject(b.id)}
+                            disabled={b.status === "rejected" || isActing}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium font-devanagari transition-all bg-red-600 hover:bg-red-700 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                            data-ocid={`bookings.delete_button.${i + 1}`}
+                          >
+                            {isRejectingThis ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <XCircle className="w-3 h-3" />
+                            )}
+                            अस्वीकार
+                          </button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
     </div>
@@ -566,10 +745,253 @@ function ContactEditor() {
   );
 }
 
+// ─── Images Tab ───────────────────────────────────────────────────────────────
+const SERVICE_KEYS = [
+  { key: "eyeBrow", nameHi: "आइब्रो", name: "Eye Brow" },
+  { key: "facials", nameHi: "फेशियल", name: "Facials" },
+  { key: "waxing", nameHi: "वैक्सिंग", name: "Waxing" },
+  { key: "pedicure", nameHi: "पेडीक्योर", name: "Pedicure" },
+  { key: "manicure", nameHi: "मेनीक्योर", name: "Manicure" },
+  { key: "hairCutting", nameHi: "हेयर कटिंग", name: "Hair Cutting" },
+  { key: "hairColor", nameHi: "हेयर कलर", name: "Hair Color" },
+  { key: "hairSpa", nameHi: "हेयर स्पा", name: "Hair Spa" },
+  { key: "partyMakeup", nameHi: "पार्टी मेकअप", name: "Party Makeup" },
+  { key: "bridalMakeup", nameHi: "ब्राइडल मेकअप", name: "Bridal Makeup" },
+];
+
+function ImageUploadCard({
+  title,
+  subtitle,
+  storageKey,
+  onSaved,
+}: {
+  title: string;
+  subtitle?: string;
+  storageKey: string;
+  onSaved?: (url: string | null) => void;
+}) {
+  const [imgUrl, setImgUrl] = useState<string | null>(
+    localStorage.getItem(storageKey),
+  );
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  async function handleFile(file: File) {
+    setUploading(true);
+    setProgress(0);
+    try {
+      const config = await loadConfig();
+      const agent = new HttpAgent({ host: config.backend_host });
+      if (config.backend_host?.includes("localhost")) {
+        await agent.fetchRootKey().catch(() => {});
+      }
+      const storageClient = new StorageClient(
+        config.bucket_name,
+        config.storage_gateway_url,
+        config.backend_canister_id,
+        config.project_id,
+        agent,
+      );
+      const arrayBuffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      const { hash } = await storageClient.putFile(bytes, (pct) =>
+        setProgress(pct),
+      );
+      const url = await storageClient.getDirectURL(hash);
+      localStorage.setItem(storageKey, url);
+      setImgUrl(url);
+      onSaved?.(url);
+      toast.success("इमेज सफलतापूर्वक अपलोड हुई! ✓");
+    } catch {
+      toast.error("इमेज अपलोड नहीं हो सकी। कृपया फिर कोशिश करें।");
+    } finally {
+      setUploading(false);
+      setProgress(0);
+    }
+  }
+
+  function handleRemove() {
+    localStorage.removeItem(storageKey);
+    setImgUrl(null);
+    onSaved?.(null);
+    toast.success("इमेज हटा दी गई।");
+  }
+
+  return (
+    <div className="border border-admin-border rounded-xl overflow-hidden bg-white">
+      <div className="px-4 py-3 border-b border-admin-border bg-[oklch(0.98_0.005_340)]">
+        <p className="font-devanagari font-semibold text-admin-foreground text-sm">
+          {title}
+        </p>
+        {subtitle && (
+          <p className="text-xs text-admin-muted font-devanagari mt-0.5">
+            {subtitle}
+          </p>
+        )}
+      </div>
+      <div className="p-4">
+        {imgUrl ? (
+          <div className="relative mb-3">
+            <img
+              src={imgUrl}
+              alt={title}
+              className="w-full h-40 object-cover rounded-lg border border-admin-border"
+            />
+            <div className="absolute inset-0 bg-black/0 hover:bg-black/10 rounded-lg transition-colors" />
+          </div>
+        ) : (
+          <div className="w-full h-40 rounded-lg border-2 border-dashed border-admin-border flex flex-col items-center justify-center mb-3 bg-[oklch(0.98_0.005_340)]">
+            <Image className="w-8 h-8 text-admin-muted mb-2" />
+            <p className="text-xs text-admin-muted font-devanagari">
+              कोई इमेज नहीं
+            </p>
+          </div>
+        )}
+        <div className="flex gap-2">
+          <label className="flex-1">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFile(file);
+                e.target.value = "";
+              }}
+            />
+            <Button
+              asChild
+              size="sm"
+              className="w-full bg-admin-primary hover:bg-admin-primary/90 text-white text-xs font-devanagari"
+              disabled={uploading}
+            >
+              <span>
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    अपलोड हो रही है... {progress > 0 ? `${progress}%` : ""}
+                  </>
+                ) : (
+                  <>
+                    <Image className="w-3 h-3 mr-1" />{" "}
+                    {imgUrl ? "इमेज बदलें" : "इमेज अपलोड करें"}
+                  </>
+                )}
+              </span>
+            </Button>
+          </label>
+          {imgUrl && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRemove}
+              className="border-red-200 text-red-500 hover:bg-red-50 text-xs font-devanagari"
+              data-ocid="images.delete_button"
+            >
+              <X className="w-3 h-3 mr-1" />
+              हटाएं
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ImagesTab() {
+  function handleServiceImg(key: string, url: string | null) {
+    const curr = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("khushbu_service_imgs") || "{}");
+      } catch {
+        return {};
+      }
+    })();
+    if (url) curr[key] = url;
+    else delete curr[key];
+    localStorage.setItem("khushbu_service_imgs", JSON.stringify(curr));
+  }
+
+  return (
+    <div className="space-y-8" data-ocid="images.section">
+      {/* Banner Image */}
+      <Card className="border-admin-border shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-admin-foreground font-devanagari text-base flex items-center gap-2">
+            <Image className="w-4 h-4 text-admin-primary" />
+            बैनर इमेज (Banner Image)
+          </CardTitle>
+          <p className="text-xs text-admin-muted font-devanagari">
+            होमपेज के हीरो सेक्शन में दिखने वाली मुख्य इमेज
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="max-w-md">
+            <ImageUploadCard
+              title="बैनर / हीरो इमेज"
+              subtitle="Recommended: 800×600 या इससे बड़ी"
+              storageKey="khushbu_banner_img"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Bridal Image */}
+      <Card className="border-admin-border shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-admin-foreground font-devanagari text-base flex items-center gap-2">
+            <Image className="w-4 h-4 text-admin-primary" />
+            ब्राइडल इमेज (Bridal Image)
+          </CardTitle>
+          <p className="text-xs text-admin-muted font-devanagari">
+            ब्राइडल / शादी सेक्शन में दिखने वाली इमेज
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="max-w-md">
+            <ImageUploadCard
+              title="ब्राइडल इमेज"
+              subtitle="Recommended: 400×300 या इससे बड़ी"
+              storageKey="khushbu_bridal_img"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Service Images */}
+      <Card className="border-admin-border shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-admin-foreground font-devanagari text-base flex items-center gap-2">
+            <Image className="w-4 h-4 text-admin-primary" />
+            सर्विस इमेज (Service Images)
+          </CardTitle>
+          <p className="text-xs text-admin-muted font-devanagari">
+            प्रत्येक सेवा के लिए अलग-अलग इमेज अपलोड करें
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {SERVICE_KEYS.map((svc) => (
+              <div key={svc.key}>
+                <ImageUploadCard
+                  title={svc.nameHi}
+                  subtitle={svc.name}
+                  storageKey={`__svc_img_${svc.key}`}
+                  onSaved={(url) => handleServiceImg(svc.key, url)}
+                />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ─── Dashboard (default export) ───────────────────────────────────────────────
 export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [activeTab, setActiveTab] = useState<
-    "bookings" | "services" | "contact"
+    "bookings" | "services" | "contact" | "images"
   >("bookings");
 
   return (
@@ -651,6 +1073,19 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             <Phone className="w-4 h-4" />
             <span className="font-devanagari">संपर्क जानकारी</span>
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("images")}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "images"
+                ? "border-admin-primary text-admin-primary"
+                : "border-transparent text-admin-muted hover:text-admin-foreground"
+            }`}
+            data-ocid="admin.tab"
+          >
+            <Image className="w-4 h-4" />
+            <span className="font-devanagari">छवियां</span>
+          </button>
         </div>
       </div>
 
@@ -659,6 +1094,7 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         {activeTab === "bookings" && <BookingsTab />}
         {activeTab === "services" && <ServicesEditor />}
         {activeTab === "contact" && <ContactEditor />}
+        {activeTab === "images" && <ImagesTab />}
       </main>
     </div>
   );

@@ -28,15 +28,43 @@ export function useBookAppointment() {
   return useMutation({
     mutationFn: async (input: BookingInput) => {
       if (!actor) throw new Error("Actor not ready");
-      const booking: Booking = {
-        id: BigInt(0),
+      const booking = {
         customerName: input.customerName,
         phoneNumber: input.phoneNumber,
         selectedService: input.selectedService,
         preferredDate: input.preferredDate,
-        timestamp: BigInt(Date.now()) * BigInt(1_000_000),
       };
       return actor.bookAppointment(booking);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    },
+  });
+}
+
+export function useApproveBooking() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: bigint) => {
+      if (!actor) throw new Error("Actor not ready");
+      return actor.approveBooking(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    },
+  });
+}
+
+export function useRejectBooking() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: bigint) => {
+      if (!actor) throw new Error("Actor not ready");
+      return actor.rejectBooking(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
